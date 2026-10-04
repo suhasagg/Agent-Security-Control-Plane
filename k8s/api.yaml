@@ -1,0 +1,14 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: agent-security-control-plane, namespace: agent-security}
+spec:
+  replicas: 3
+  selector: {matchLabels: {app: agent-security-control-plane}}
+  template:
+    metadata: {labels: {app: agent-security-control-plane}}
+    spec:
+      containers:
+      - name: api
+        image: agent-security-control-plane:latest
+        ports: [{containerPort: 8000}]
+        securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, runAsNonRoot: true}

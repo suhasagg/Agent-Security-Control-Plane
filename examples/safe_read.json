@@ -1,0 +1,29 @@
+{
+  "principal": {
+    "tenant_id": "acme",
+    "user_id": "u1",
+    "agent_id": "email-agent",
+    "user_roles": [
+      "agent.user",
+      "confidential.reader"
+    ],
+    "agent_roles": [
+      "agent.execute"
+    ]
+  },
+  "task": {
+    "original_task": "Read and summarize the selected email",
+    "current_step": "read email",
+    "allowed_capabilities": [
+      "email"
+    ]
+  },
+  "action": {
+    "tool_id": "email",
+    "operation": "read",
+    "resource": "mailbox/message-123",
+    "environment": "production",
+    "classification": "CONFIDENTIAL",
+    "side_effect": false
+  }
+}
