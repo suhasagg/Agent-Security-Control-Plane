@@ -2262,3 +2262,544 @@ have succeeded.
 ```
 
 The security architecture is therefore designed for the world in which the model is **not** a trusted computing base.
+
+## Research Foundations & References
+
+The **Agent Security Control Plane (ASCP)** is an independent, production-oriented reference architecture for securing autonomous and tool-using AI agents. It is not an implementation of any single research paper, academic system, or proprietary platform.
+
+The architecture is informed by research and industry guidance covering **LLM jailbreaks, indirect prompt injection, task alignment, agent reliability, excessive agency, least privilege, adversarial AI, and AI risk management**.
+
+The central engineering assumption of ASCP is:
+
+> **An AI agent may be manipulated, compromised, inconsistent, overconfident, or simply wrong. The surrounding system must still prevent unauthorized or unsafe high-impact actions.**
+
+### 1. Task Alignment and Indirect Prompt Injection
+
+**Feiran Jia, Tong Wu, Xin Qin, and Anna Squicciarini.**  
+*The Task Shield: Enforcing Task Alignment to Defend Against Indirect Prompt Injection in LLM Agents.*  
+Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (ACL 2025).
+
+DOI: `10.18653/v1/2025.acl-long.1435`
+
+Reference:  
+`https://aclanthology.org/2025.acl-long.1435/`
+
+**Relevance to ASCP**
+
+This work motivates the architectural principle that an agent's proposed actions should remain aligned with the user's original task, rather than blindly following instructions encountered in external content.
+
+It directly informs concepts represented by:
+
+```text
+app/task_alignment.py
+app/injection_guard.py
+
+Original User Task
+        ↓
+Current Agent Step
+        ↓
+Proposed Tool Action
+        ↓
+Task Alignment
+        ↓
+ALLOW / CLARIFY / DENY
+```
+
+Relevant ASCP concepts include:
+
+- Task Alignment Guard
+- original-task preservation
+- capability envelopes
+- side-effect validation
+- indirect prompt-injection defense
+- task-drift detection
+- separation of user intent from untrusted external instructions
+
+---
+
+### 2. AgentDojo — Security Evaluation for Tool-Using Agents
+
+**Edoardo Debenedetti, Jie Zhang, Mislav Balunović, Luca Beurer-Kellner, Marc Fischer, and Florian Tramèr.**  
+*AgentDojo: A Dynamic Environment to Evaluate Prompt Injection Attacks and Defenses for LLM Agents.*  
+Advances in Neural Information Processing Systems (NeurIPS 2024), Datasets and Benchmarks Track.
+
+Reference:  
+`https://proceedings.neurips.cc/paper_files/paper/2024/hash/97091a5177d8dc64b1da8bf3e1f6fb54-Abstract-Datasets_and_Benchmarks_Track.html`
+
+**Relevance to ASCP**
+
+AgentDojo provides an important foundation for evaluating prompt-injection attacks against tool-using agents in realistic environments.
+
+It informs ASCP's approach to:
+
+- adversarial agent evaluation
+- indirect prompt injection
+- untrusted tool results
+- security-versus-utility evaluation
+- benign-task regression testing
+- adversarial test corpora
+- security evaluation of tool-using agents
+
+ASCP extends this idea from evaluation into runtime enforcement:
+
+```text
+Agent Security Evaluation
+          +
+Runtime Security Enforcement
+          ↓
+Task Alignment
+Permission Firewall
+Risk Engine
+Human Approval
+Gateway
+Sandbox
+```
+
+---
+
+### 3. LLM Jailbreaks and Shallow Safety Alignment
+
+**Princeton University — Prateek Mittal and collaborators.**  
+*Why It's So Easy to Jailbreak AI Chatbots — and How to Fix Them.*
+
+Reference:  
+`https://www.cs.princeton.edu/news/why-its-so-easy-jailbreak-ai-chatbots-and-how-fix-them`
+
+The associated research studies common weaknesses underlying apparently different jailbreak techniques and examines limitations of current model safety-alignment mechanisms.
+
+**Relevance to ASCP**
+
+This research motivates one of the most important design decisions in the project:
+
+```text
+Model Safety
+     ≠
+System Authorization
+```
+
+ASCP therefore does not assume that an LLM's internal refusal behavior is a sufficient security boundary.
+
+Instead:
+
+```text
+Potentially Compromised / Manipulated LLM
+                    ↓
+             Proposed Action
+                    ↓
+        External Security Controls
+                    ↓
+Task Alignment
+Identity
+Delegation
+Permission Firewall
+Classification
+Risk
+Human Approval
+Gateway
+Sandbox
+```
+
+This informs:
+
+```text
+app/jailbreak_guard.py
+app/engine.py
+```
+
+as well as the project's broader **defense-in-depth** philosophy.
+
+---
+
+### 4. Agent Reliability as a Security Property
+
+**Princeton Science of Agent Evaluation (SAgE) Research Group.**  
+*RFC AI Agent Security.*
+
+Reference:  
+`https://sage.cs.princeton.edu/documents/RFC_AI_Agent_Security.pdf`
+
+SAgE research examines AI-agent reliability, capability evaluation, behavioral consistency, realistic agent evaluation, failure recognition, and open-ended agent behavior.
+
+**Relevance to ASCP**
+
+A key security insight is that an agent does not need to be malicious or compromised to create security problems.
+
+An uncompromised agent may still:
+
+- behave inconsistently
+- fail under small environmental changes
+- choose unnecessary actions
+- repeatedly retry failed operations
+- fail to recognize uncertainty
+- consume excessive resources
+- drift away from the original task
+- incorrectly recover from tool failures
+
+ASCP therefore models reliability as a security input.
+
+This directly informs:
+
+```text
+app/reliability.py
+```
+
+and architectural concepts including:
+
+```text
+Maximum Tool Calls
+Maximum Agent Steps
+Maximum Delegation Depth
+Maximum Cost
+Maximum Side Effects
+Maximum Execution Time
+Failure Recognition
+Circuit Breakers
+Human Escalation
+```
+
+The resulting principle is:
+
+> **Agent capability does not imply agent reliability, and agent reliability does not imply authorization.**
+
+---
+
+### 5. OWASP LLM06:2025 — Excessive Agency
+
+**OWASP GenAI Security Project.**  
+*LLM06:2025 — Excessive Agency.*
+
+Reference:  
+`https://genai.owasp.org/llmrisk/llm062025-excessive-agency/`
+
+OWASP identifies excessive agency as a major security risk when LLM-based systems are given excessive functionality, permissions, or autonomy.
+
+**Relevance to ASCP**
+
+This guidance strongly aligns with the project's:
+
+- Permission Firewall
+- least-privilege tool access
+- least-privilege credentials
+- resource-level authorization
+- operation-level authorization
+- bounded agent autonomy
+- human approval
+- scoped delegation
+- side-effect budgets
+- credential isolation
+
+The corresponding ASCP architecture is:
+
+```text
+Agent
+  ↓
+Proposed Action
+  ↓
+User Authority
+  ∩
+Agent Authority
+  ∩
+Delegated Authority
+  ∩
+Tool Permission
+  ∩
+Resource Permission
+  ∩
+Operation Permission
+  ↓
+Effective Authority
+```
+
+---
+
+### 6. OWASP Agentic AI — Threats and Mitigations
+
+**OWASP GenAI Security Project / Agentic Security Initiative.**  
+*Agentic AI — Threats and Mitigations.*
+
+Reference:  
+`https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/`
+
+**Relevance to ASCP**
+
+This guidance contributes to the project's broader threat model around autonomous agent systems.
+
+Relevant ASCP areas include:
+
+- tool misuse
+- excessive autonomy
+- identity and authorization
+- untrusted external content
+- agent-to-agent communication
+- memory poisoning
+- credential exposure
+- unsafe tool combinations
+- external side effects
+- defense in depth
+- monitoring and audit
+
+---
+
+### 7. NIST Artificial Intelligence Risk Management Framework
+
+**National Institute of Standards and Technology (NIST).**  
+*Artificial Intelligence Risk Management Framework (AI RMF 1.0).*  
+NIST AI 100-1, 2023.
+
+Reference:  
+`https://www.nist.gov/itl/ai-risk-management-framework`
+
+**Relevance to ASCP**
+
+NIST AI RMF provides a broader risk-management foundation for the project's production lifecycle.
+
+It informs ASCP concepts around:
+
+- AI governance
+- risk identification
+- risk measurement
+- evaluation
+- monitoring
+- operational controls
+- incident response
+- system accountability
+- deployment governance
+- continuous assessment
+
+ASCP translates these principles into concrete agent-security infrastructure:
+
+```text
+GOVERN
+   ↓
+Security Policies
+
+MAP
+   ↓
+Agent / Tool / Data Threat Model
+
+MEASURE
+   ↓
+Security + Reliability Evaluation
+
+MANAGE
+   ↓
+Permission Firewall
+Risk Engine
+Approval
+Gateway
+Sandbox
+Monitoring
+```
+
+---
+
+### 8. NIST Generative AI Profile
+
+**National Institute of Standards and Technology.**  
+*Artificial Intelligence Risk Management Framework: Generative Artificial Intelligence Profile.*  
+NIST AI 600-1, 2024.
+
+DOI: `10.6028/NIST.AI.600-1`
+
+Reference:  
+`https://www.nist.gov/publications/artificial-intelligence-risk-management-framework-generative-artificial-intelligence`
+
+**Relevance to ASCP**
+
+The Generative AI Profile extends AI risk-management concepts to risks particularly relevant to generative models.
+
+It supports ASCP's emphasis on:
+
+- GenAI security evaluation
+- continuous monitoring
+- adversarial testing
+- governance
+- model-risk management
+- production lifecycle controls
+- human oversight
+- incident management
+
+---
+
+## Research-to-Architecture Mapping
+
+| ASCP Component | Primary Research / Guidance |
+|---|---|
+| `injection_guard.py` | Task Shield, AgentDojo |
+| `jailbreak_guard.py` | Princeton jailbreak / safety-alignment research |
+| `task_alignment.py` | Task Shield |
+| `reliability.py` | Princeton SAgE |
+| `permission.py` | OWASP Excessive Agency |
+| `memory_guard.py` | Task-alignment and defense-in-depth principles |
+| `risk.py` | NIST AI RMF, OWASP |
+| Human Approval | OWASP Excessive Agency / least autonomy |
+| Capability Envelope | Task Shield + least privilege |
+| Delegation Limits | OWASP agentic security + least privilege |
+| Gateway / PEP | Defense-in-depth / zero-trust enforcement |
+| Sandboxed Execution | OWASP agentic threat mitigation |
+| Adversarial Evaluation | AgentDojo |
+| Reliability Evaluation | Princeton SAgE |
+| Production Governance | NIST AI RMF |
+| GenAI Risk Lifecycle | NIST AI 600-1 |
+
+## How the Research Maps to the Complete Architecture
+
+```text
+                    AI AGENT
+                       │
+                       ▼
+               Proposed Action
+                       │
+          ┌────────────┴────────────┐
+          │                         │
+          ▼                         ▼
+   Adversarial Security       Agent Reliability
+          │                         │
+ Princeton Jailbreak              SAgE
+ AgentDojo                        Research
+ Task Shield                       │
+          │                         │
+          └────────────┬────────────┘
+                       ▼
+              Task Alignment
+                       │
+                       ▼
+             Permission Firewall
+                       │
+                 OWASP Guidance
+                       │
+                       ▼
+                  Risk Engine
+                       │
+                  NIST AI RMF
+                       │
+                       ▼
+               Human Approval
+                       │
+                       ▼
+              Gateway / Sandbox
+                       │
+                       ▼
+               Tool Execution
+                       │
+                       ▼
+          Audit / Evaluation / SLOs
+```
+
+## Design Interpretation
+
+The project intentionally combines multiple research directions rather than relying on any single defense.
+
+```text
+Jailbreak Research
+        ↓
+Do not trust model self-restraint
+
+Prompt-Injection Research
+        ↓
+Separate trusted instructions from untrusted data
+
+Task-Alignment Research
+        ↓
+Verify actions against original user intent
+
+Agent-Reliability Research
+        ↓
+Assume benign agents can still fail dangerously
+
+OWASP Agent Security
+        ↓
+Minimize functionality, permissions and autonomy
+
+NIST AI Risk Management
+        ↓
+Govern, measure, monitor and continuously manage risk
+```
+
+Together these motivate the core ASCP principle:
+
+> **Model output is a proposal, not authority.**
+
+A proposed action becomes executable only after passing independent controls for:
+
+```text
+Task Alignment
+        +
+Adversarial-Content Analysis
+        +
+Reliability Constraints
+        +
+User Identity
+        +
+Agent Identity
+        +
+Delegation
+        +
+Tool Authorization
+        +
+Resource Authorization
+        +
+Data Classification
+        +
+Risk Evaluation
+        +
+Required Human Approval
+        +
+Credential Scoping
+        +
+Gateway Enforcement
+        +
+Sandbox Constraints
+```
+
+## Attribution and Scope
+
+The **Agent Security Control Plane** is an independent engineering project.
+
+References to Princeton University, SAgE, Task Shield, AgentDojo, OWASP, NIST, or other research and standards organizations indicate **research influence and architectural motivation only**.
+
+The repository does **not** claim to:
+
+- reproduce proprietary research implementations;
+- reproduce unpublished Princeton systems;
+- implement any organization's internal production security infrastructure;
+- be an official implementation of Task Shield, AgentDojo, OWASP, or NIST;
+- provide a complete solution to LLM jailbreak detection.
+
+Instead, the project translates concepts from these research areas into a broader production-oriented architecture for securing autonomous, tool-using AI agents.
+
+## References
+
+1. Jia, F., Wu, T., Qin, X., & Squicciarini, A.  
+   *The Task Shield: Enforcing Task Alignment to Defend Against Indirect Prompt Injection in LLM Agents.* ACL 2025.  
+   DOI: `10.18653/v1/2025.acl-long.1435`  
+   `https://aclanthology.org/2025.acl-long.1435/`
+
+2. Debenedetti, E., Zhang, J., Balunović, M., Beurer-Kellner, L., Fischer, M., & Tramèr, F.  
+   *AgentDojo: A Dynamic Environment to Evaluate Prompt Injection Attacks and Defenses for LLM Agents.* NeurIPS 2024.  
+   `https://proceedings.neurips.cc/paper_files/paper/2024/hash/97091a5177d8dc64b1da8bf3e1f6fb54-Abstract-Datasets_and_Benchmarks_Track.html`
+
+3. Princeton University.  
+   *Why It's So Easy to Jailbreak AI Chatbots — and How to Fix Them.*  
+   `https://www.cs.princeton.edu/news/why-its-so-easy-jailbreak-ai-chatbots-and-how-fix-them`
+
+4. Princeton Science of Agent Evaluation (SAgE) Research Group.  
+   *RFC AI Agent Security.*  
+   `https://sage.cs.princeton.edu/documents/RFC_AI_Agent_Security.pdf`
+
+5. OWASP GenAI Security Project.  
+   *LLM06:2025 — Excessive Agency.*  
+   `https://genai.owasp.org/llmrisk/llm062025-excessive-agency/`
+
+6. OWASP GenAI Security Project / Agentic Security Initiative.  
+   *Agentic AI — Threats and Mitigations.*  
+   `https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/`
+
+7. National Institute of Standards and Technology.  
+   *Artificial Intelligence Risk Management Framework (AI RMF 1.0).* NIST AI 100-1, 2023.  
+   `https://www.nist.gov/itl/ai-risk-management-framework`
+
+8. National Institute of Standards and Technology.  
+   *Artificial Intelligence Risk Management Framework: Generative Artificial Intelligence Profile.* NIST AI 600-1, 2024.  
+   DOI: `10.6028/NIST.AI.600-1`  
+   `https://www.nist.gov/publications/artificial-intelligence-risk-management-framework-generative-artificial-intelligence`
